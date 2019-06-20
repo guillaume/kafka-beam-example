@@ -2,13 +2,11 @@
   (:require
    [datasplash.core :as ds])
   (:import
-   ;  (com.google.common.collect ImmutableMap)
    (org.apache.beam.sdk Pipeline)
    (org.apache.beam.sdk.io TextIO)
-   (org.apache.beam.sdk.io.kafka LongStringKafkaIO)
-   (org.apache.beam.sdk.options PipelineOptions)
+   (org.apache.beam.sdk.io.kafka LongStringKafkaIO CustomFunction_)
    (org.apache.beam.sdk.options PipelineOptionsFactory)
-   (org.apache.beam.sdk.transforms DoFn$ProcessContext MapElements SimpleFunction Count Values ParDo)
+   (org.apache.beam.sdk.transforms DoFn$ProcessContext MapElements  Count Values ParDo)
    (org.apache.beam.sdk.values KV)
    (org.apache.kafka.common.serialization LongDeserializer)
    (org.apache.kafka.common.serialization StringDeserializer)))
@@ -35,18 +33,17 @@
                                 (.withValueDeserializer StringDeserializer)
                                 (.updateConsumerProperties {"auto.offset.reset" "earliest"})
                                 (.withMaxNumRecords 5)
-                                (.withoutMetadata))
-
-        ]
+                                (.withoutMetadata))]
     (-> p
         (.apply kafka-io-transforms)
         (.apply (Values/create))
         (.apply "ExtractWords" (ParDo/of (ds/dofn (tokenizer-fn))))
         (.apply (Count/perElement))
-        (.apply "FormatResults" (MapElements/via (proxy [SimpleFunction] [] (apply [^KV input]
-                                                                              (str (.getKey input) ":" (.getValue input))))))
+        (.apply "FormatResults" (MapElements/via
+                                 (CustomFunction_.
+                                  '(fn [^KV input]
+                                     (str (.getKey input) ":" (.getValue input))))))
         (.apply (-> (TextIO/write)
                     (.to "wordcounts"))))
-
-    #_(-> (.run p)
+    (-> (.run p)
           (.waitUntilFinish))))
