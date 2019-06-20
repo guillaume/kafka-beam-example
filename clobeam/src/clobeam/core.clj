@@ -16,14 +16,14 @@
 (defn run-pipeline []
   (let [options (PipelineOptionsFactory/create)
         p (Pipeline/create options)
-        kafka-io-transforms (-> (LongStringKafkaIO/read)    ; RUNTIME ERROR No matching method apply found taking 1 args for class org.apache.beam.sdk.io.kafka.AutoValue_KafkaIO_Read
+        kafka-io-transforms (-> (LongStringKafkaIO/read)
                                 (.withBootstrapServers "kafka:29092")
                                 (.withTopic "words")
                                 (.withKeyDeserializer LongDeserializer)
                                 (.withValueDeserializer StringDeserializer)
                                 (.updateConsumerProperties {"auto.offset.reset" "earliest"})
                                 (.withMaxNumRecords 5)
-                                .withoutMetadata)           ; RUNTIME ERROR No matching method apply found taking 1 args for class org.apache.beam.sdk.io.kafka.KafkaIO$TypedWithoutMetadata
+                                .withoutMetadata)
         ]
     (-> p
         (.apply kafka-io-transforms)
