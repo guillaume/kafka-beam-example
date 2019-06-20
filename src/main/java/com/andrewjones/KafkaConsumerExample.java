@@ -35,25 +35,25 @@ public class KafkaConsumerExample {
 
                 .withoutMetadata() // PCollection<KV<Long, String>>
         )
-                .apply(Values.<String>create())
-                .apply("ExtractWords", ParDo.of(new DoFn<String, String>() {
-                    @ProcessElement
-                    public void processElement(ProcessContext c) {
-                        for (String word : c.element().split(TOKENIZER_PATTERN)) {
-                            if (!word.isEmpty()) {
-                                c.output(word);
-                            }
-                        }
+        .apply(Values.<String>create())
+        .apply("ExtractWords", ParDo.of(new DoFn<String, String>() {
+            @ProcessElement
+            public void processElement(ProcessContext c) {
+                for (String word : c.element().split(TOKENIZER_PATTERN)) {
+                    if (!word.isEmpty()) {
+                        c.output(word);
                     }
-                }))
-                .apply(Count.<String>perElement())
-                .apply("FormatResults", MapElements.via(new SimpleFunction<KV<String, Long>, String>() {
-                    @Override
-                    public String apply(KV<String, Long> input) {
-                        return input.getKey() + ": " + input.getValue();
-                    }
-                }))
-                .apply(TextIO.write().to("wordcounts"));
+                }
+            }
+        }))
+        .apply(Count.<String>perElement())
+        .apply("FormatResults", MapElements.via(new SimpleFunction<KV<String, Long>, String>() {
+            @Override
+            public String apply(KV<String, Long> input) {
+                return input.getKey() + ": " + input.getValue();
+            }
+        }))
+        .apply(TextIO.write().to("wordcounts"));
 
         p.run().waitUntilFinish();
     }
