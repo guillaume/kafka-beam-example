@@ -1,4 +1,6 @@
 (ns clobeam.core
+  (:require
+   [datasplash.core :as ds])
   (:import
    ;  (com.google.common.collect ImmutableMap)
    (org.apache.beam.sdk Pipeline)
@@ -13,6 +15,16 @@
 
 (def tokenizer-pattern "[^\\p{L}]+")
 
+(defn tokenizer-fn
+  "Returns a function that corresponds to a Clojure filter operation inside a ParDo"
+  []
+  (fn [^DoFn$ProcessContext c]
+    (let [words (-> (.element c)
+                    (.split tokenizer-pattern))]
+      (doseq [word words]
+        (when-not (.isEmpty word)
+          (.output c word))))))
+
 (defn run-pipeline []
   (let [options (PipelineOptionsFactory/create)
         p (Pipeline/create options)
@@ -24,21 +36,17 @@
                                 (.updateConsumerProperties {"auto.offset.reset" "earliest"})
                                 (.withMaxNumRecords 5)
                                 .withoutMetadata)
+
         ]
     (-> p
         (.apply kafka-io-transforms)
         (.apply (Values/create))
-        (.apply "ExtractWords" (ParDo/of (fn [^DoFn$ProcessContext c]
-                                           (let [words (-> (.element c)
-                                                           (.split tokenizer-pattern))]
-                                             (doseq [word words]
-                                               (when-not (.isEmpty word)
-                                                 (.output c word)))))))
-        #_(.apply (Count/perElement))
-        #_(.apply "FormatResults" (fn [^KV input]
-                                    (str (.getKey input) ":" (.getValue input))))
-        #_(.apply (-> (TextIO/write)
-                      (.to "wordcounts"))))
+        (.apply "ExtractWords" (ParDo/of (ds/dofn (tokenizer-fn))))
+        (.apply (Count/perElement))
+        (.apply "FormatResults" (MapElements/via (proxy [SimpleFunction] [] (apply [^KV input]
+                                                                              (str (.getKey input) ":" (.getValue input))))))
+        (.apply (-> (TextIO/write)
+                    (.to "wordcounts"))))
 
     #_(-> (.run p)
           (.waitUntilFinish))))
