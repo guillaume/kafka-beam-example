@@ -35,7 +35,7 @@
                                 (.withValueDeserializer StringDeserializer)
                                 (.updateConsumerProperties {"auto.offset.reset" "earliest"})
                                 (.withMaxNumRecords 5)
-                                .withoutMetadata)
+                                (.withoutMetadata))
 
         ]
     (-> p
