@@ -27,7 +27,7 @@
   (let [options (PipelineOptionsFactory/create)
         p (Pipeline/create options)
         kafka-io-transforms (-> (LongStringKafkaIO/read)
-                                (.withBootstrapServers "kafka:29092")
+                                (.withBootstrapServers "localhost:9092")
                                 (.withTopic "words")
                                 (.withKeyDeserializer LongDeserializer)
                                 (.withValueDeserializer StringDeserializer)
